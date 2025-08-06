@@ -1,0 +1,5 @@
+<type>(<scope>): <short summary>
+
+<body: explain what & why. Wrap at 72 chars if needed.>
+
+<footer: e.g. "Resolves #123", "BREAKING CHANGE: ..." >
