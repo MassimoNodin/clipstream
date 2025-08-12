@@ -52,7 +52,7 @@ clipstream/
 
 ### SQLx Connection Pool Integration
 Processing workers integrate with Axum's SQLx connection pooling for optimal database performance:
-
+```
 ```rust
 // MinIO operations with shared SQLx pools
 async fn generate_presigned_upload_url(
