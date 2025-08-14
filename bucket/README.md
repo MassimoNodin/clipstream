@@ -119,6 +119,7 @@ async fn process_video_worker(
 - **Horizontal Scaling**: Each Axum instance manages independent pools
 - **Connection Efficiency**: Minimal overhead for status updates and metadata queries
 
+```
 5. Viewing Flow
    ├─> User requests video stream
    ├─> Axum API generates presigned GET URL
