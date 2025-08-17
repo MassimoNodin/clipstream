@@ -26,10 +26,30 @@ A self-hosted video platform designed for gaming communities to share, discover,
 
 ## 🏗️ Architecture
 
+### Subdomain Architecture
+- **API Domain**: `api.clipsstream.com` - Dedicated subdomain for all API endpoints
+- **Web Domain**: `clipsstream.com` - Main website for the Next.js application  
+- **Clean Separation**: No path-based routing needed, each service has its own domain
+- **Port Configuration**: API runs on port 8000, web app on port 3000
+
+### Service Architecture
+- **Axum API Server**: Rust backend on port 8000, accessible via `api.clipsstream.com`
+- **Next.js Frontend**: React application on port 3000, accessible via `clipsstream.com`
+- **nginx Reverse Proxy**: Routes subdomains to appropriate services
+- **PostgreSQL**: Database with pgvector extension and connection pooling
+- **MinIO**: S3-compatible object storage for video files
+- **Redis**: Background job queue for video processing
+
+### Routing Structure
+```
+https://api.clipsstream.com/*     → Axum server (port 8000)
+https://clipsstream.com/*         → Next.js app (port 3000)
+```
+
 ### Tech Stack
 - **Backend**: Axum Rust web framework with SQLx connection pooling
 - **Frontend**: Next.js 14+ with TypeScript
-- **Authentication**: NextAuth.js with Google OAuth
+- **Authentication**: NextAuth.js with Google OAuth + JWT for API
 - **Storage**: MinIO object storage with presigned URLs
 - **Database**: PostgreSQL with pgvector for embeddings + SQLx pooling
 - **Queue System**: Redis for background job processing
@@ -70,24 +90,33 @@ git clone https://github.com/MassimoNodin/clipstream.git
 cd clipstream
 ```
 
-2. Start the complete stack:
+2. Start the backend services:
 ```bash
+cd api/clipstream-api
 docker-compose up -d
 ```
 
+3. Start the Next.js frontend:
+```bash
+cd ../../web/clipstream
+npm install
+npm run dev
+```
+
 This will start:
-- MinIO object storage (localhost:9000)
-- PostgreSQL database
-- Redis job queue  
-- Axum API backend
-- Next.js frontend (localhost:3000)
+- PostgreSQL database (port 5432)
+- Axum API backend (port 8000)
+- Next.js frontend (port 3000)
+- nginx reverse proxy (ports 80/443)
 
 ### Development Setup
 
 #### Backend (Axum)
 ```bash
-cd api
+cd api/clipstream-api
 cargo run
+# Server will run on http://localhost:8000
+# API endpoints available directly (no /api prefix)
 ```
 
 #### Frontend (Next.js)
@@ -95,21 +124,42 @@ cargo run
 cd web/clipstream
 npm install
 npm run dev
+# Frontend will run on http://localhost:3000
 ```
 
-#### MinIO Setup
-Access MinIO console at http://localhost:9001 and create buckets:
-- `raw-uploads` - Original video files
-- `processed-videos` - Transcoded HLS segments
-- `thumbnails` - Video thumbnails
-- `transcripts` - Speech-to-text results
-- `embeddings` - AI analysis data
+#### nginx Configuration for Subdomains
+Your nginx should route subdomains as follows:
+```nginx
+# API subdomain
+server {
+    server_name api.clipsstream.com;
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Main website
+server {
+    server_name clipsstream.com;
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
 ### Environment Variables
 
 #### Backend (.env)
 ```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/clipstream
+DATABASE_URL=postgresql://clipstream:password@localhost:5432/clipstream
 REDIS_URL=redis://localhost:6379
 MINIO_ENDPOINT=http://localhost:9000
 MINIO_ACCESS_KEY=minioadmin
@@ -121,8 +171,8 @@ JWT_SECRET=your-jwt-secret
 #### Frontend (.env.local)
 ```env
 NEXTAUTH_SECRET=your-secret-key
-NEXTAUTH_URL=http://localhost:3000
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXTAUTH_URL=https://clipsstream.com
+NEXT_PUBLIC_API_BASE_URL=https://api.clipsstream.com
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
@@ -158,37 +208,109 @@ let pool = PgPoolOptions::new()
 
 ### Load Balancer Configuration
 ```yaml
-# Example with multiple Axum instances
+# Example Docker Compose with multiple Axum instances
 services:
   nginx:
     image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      - api-1
-      - api-2
-      - api-3
+      - clipstream-api-1
+      - clipstream-api-2
 
-  api-1:
-    build: ./api
+  clipstream-api-1:
+    build: ./api/clipstream-api
+    ports:
+      - "8001:8000"
     environment:
-      - DATABASE_URL=postgresql://user:pass@managed-db:5432/clipstream
-  
-  api-2:
-    build: ./api
-    environment:
-      - DATABASE_URL=postgresql://user:pass@managed-db:5432/clipstream
+      - DATABASE_URL=postgresql://clipstream:password@postgres:5432/clipstream
       
-  api-3:
-    build: ./api
+  clipstream-api-2:
+    build: ./api/clipstream-api  
+    ports:
+      - "8002:8000"
     environment:
-      - DATABASE_URL=postgresql://user:pass@managed-db:5432/clipstream
+      - DATABASE_URL=postgresql://clipstream:password@postgres:5432/clipstream
+
+  next-app:
+    build: ./web/clipstream
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=https://api.clipsstream.com
 ```
 
-## 🔧 Development
+## 🚀 Deployment
+
+### Production Deployment
+For production deployment, you'll need to:
+
+1. **Build and deploy the Axum API**:
+```bash
+cd api/clipstream-api
+docker build -t clipstream-api .
+docker run -d -p 8000:8000 --env-file .env clipstream-api
 ```
 
-## 📱 Usage
+2. **Build and deploy the Next.js frontend**:
+```bash
+cd web/clipstream
+npm run build
+npm start  # or deploy to Vercel/Netlify
+```
+
+3. **Configure nginx** to route subdomains:
+   - `api.clipsstream.com` → Axum server on port 8000
+   - `clipsstream.com` → Next.js app on port 3000
+
+4. **Set up SSL certificates** for both subdomains (recommended: Let's Encrypt with certbot)
+
+### DNS Configuration
+Make sure your DNS is configured with:
+```
+api.clipsstream.com  A    YOUR_SERVER_IP
+clipsstream.com      A    YOUR_SERVER_IP
+```
+
+### API Endpoint Testing
+Once deployed, test your API endpoints:
+```bash
+# Health check
+curl https://api.clipsstream.com/health
+
+# Hello world
+curl https://api.clipsstream.com/
+
+# With authentication
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     https://api.clipsstream.com/streams
+```
+```
+
+## � Development
+
+### Project Structure
+```
+clipstream/
+├── api/clipstream-api/      # Rust Axum API server
+│   ├── src/
+│   │   └── main.rs          # Main API entry point
+│   ├── Cargo.toml           # Rust dependencies
+│   ├── Dockerfile           # API container build
+│   └── compose.yml          # Backend services
+├── web/clipstream/          # Next.js application
+│   ├── src/
+│   │   ├── app/             # App router pages
+│   │   ├── components/      # Shared components
+│   │   └── lib/             # Utilities
+│   └── public/              # Static assets
+└── README.md                # This file
+```
+
+### Key Features in Development
 
 ### Stream Management
 - **Create Streams**: Set up dedicated spaces for different games or groups
@@ -279,6 +401,8 @@ clipstream/
 - [ ] Role-based access control
 - [ ] Search functionality with speech-to-text
 - [ ] Social features (likes, shares)
+
+## 📱 Usage
 
 ## 🎯 Roadmap
 
