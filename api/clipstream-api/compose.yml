@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: clipstream-postgres
+    environment:
+      POSTGRES_DB: clipstream
+      POSTGRES_USER: clipstream
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  clipstream-api:
+    build: .
+    container_name: clipstream-api
+    environment:
+      DATABASE_URL: postgresql://clipstream:password@postgres:5432/clipstream
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
