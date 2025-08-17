@@ -2,7 +2,55 @@
 
 A Rust Axum backend API for the Clipstream gaming clip platform with integrated SQLx connection pooling, intelligent video discovery and MinIO processing pipeline.
 
-## 🏗️ Architecture & Connection Pooling
+## 🏗️ Architecture & Deployment
+
+### Subdomain Architecture
+- **API Domain**: `api.clipsstream.com` - Dedicated subdomain for all API endpoints
+- **Web Domain**: `clipsstream.com` - Main website for the Next.js application
+- **Clean Separation**: No path-based routing needed, each service has its own domain
+- **Port Configuration**: API runs on port 8000, web app on port 3000
+
+### Service Architecture
+- **Axum API Server**: Runs on port 8000, accessible via `api.clipsstream.com`
+- **Next.js Frontend**: Runs on port 3000, accessible via `clipsstream.com`  
+- **nginx Reverse Proxy**: Routes subdomains to appropriate services
+- **PostgreSQL**: Database with connection pooling
+- **MinIO**: S3-compatible object storage for video files
+
+### nginx Configuration
+```nginx
+# API subdomain
+server {
+    server_name api.clipsstream.com;
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+    }
+}
+
+# Main website
+server {
+    server_name clipsstream.com;
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+    }
+}
+```
+
+### Docker Compose Setup
+```yaml
+services:
+  clipstream-api:      # Axum server on port 8000
+    build: .
+    ports: ["8000:8000"]
+    
+  postgres:            # Database
+    image: postgres:15
+    ports: ["5432:5432"]
+    
+  nginx:              # Reverse proxy for subdomains
+    image: nginx:alpine
+    ports: ["80:80", "443:443"]
+```
 
 ### Axum + SQLx Integration
 - **Framework**: Axum web framework for high-performance async HTTP
@@ -40,17 +88,27 @@ let app = Router::new()
 
 ## 🚀 API Endpoints
 
+**Base URL**: `https://api.clipsstream.com`
+
+All endpoints are accessed directly without any path prefix:
+
+### Health & System
+```
+GET  /health                       # Health check with database status
+GET  /                             # Simple hello world endpoint
+```
+
 ### Authentication & Authorization
 ```
-POST /auth/verify               # Verify Google ID token and create/update user
-GET  /auth/user                 # Get current user info (requires Bearer token)
-POST /auth/refresh              # Refresh app JWT token
+POST /auth/verify                  # Verify Google ID token and create/update user
+GET  /auth/user                    # Get current user info (requires Bearer token)
+POST /auth/refresh                 # Refresh app JWT token
 ```
 
 **Authentication Flow:**
 1. User signs in with Google on Next.js frontend
 2. Frontend receives Google ID token
-3. Frontend sends Google ID token to `/auth/verify`
+3. Frontend sends Google ID token to `https://api.clipsstream.com/auth/verify`
 4. Backend verifies token with Google's public keys
 5. Backend returns app JWT for subsequent API calls
 
@@ -205,7 +263,7 @@ GET  /videos/{id}/shares           # Get share count
   - `200`: `{ liked: false, total_likes: 14 }`
 
 - `POST /videos/{id}/share`
-  - `201`: `{ share_url: "https://api.clipstream.com/share/abc123", expires_at: "2025-08-15T10:30:00Z" }`
+  - `201`: `{ share_url: "https://api.clipsstream.com/share/abc123", expires_at: "2025-08-15T10:30:00Z" }`
 
 ### File Serving
 ```
@@ -223,14 +281,14 @@ GET  /share/{code}                 # Access shared video
 
 ### System & Admin
 ```
-GET  /system/health                # Health check
+GET  /health                       # Health check (also available at root /)
 GET  /system/storage               # Storage usage stats (Admin)
 GET  /admin/duplicates             # List flagged duplicates (Admin)
 POST /admin/processing/retry       # Retry failed processing jobs (Admin)
 ```
 
 **Responses:**
-- `GET /system/health`
+- `GET /health`
   - `200`: `{ status: "healthy", database: "connected", storage: "available", ffmpeg: "ready", uptime: "5 days" }`
   - `503`: `{ status: "unhealthy", issues: ["database_connection_failed"] }`
 
