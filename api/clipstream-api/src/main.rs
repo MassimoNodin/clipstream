@@ -9,6 +9,15 @@ use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::time::Duration;
 
+mod auth;
+mod streams;
+mod invites;
+mod videos;
+mod search;
+mod processing;
+mod files;
+mod admin;
+
 #[derive(Debug, Serialize)]
 struct HealthStatus {
     status: String,
@@ -73,6 +82,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/", get(hello_world))
         .route("/health", get(health_check))
+        .merge(auth::routes())
+        .merge(streams::routes())
+        .merge(invites::routes())
+        .merge(videos::routes())
+        .merge(search::routes())
+        .merge(processing::routes())
+        .merge(files::routes())
+        .merge(admin::routes())
         .with_state(pool); // Share the pool across all routes
 
     // Create server
