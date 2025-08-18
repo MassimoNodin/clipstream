@@ -32,30 +32,14 @@ struct AppError {
     error: String,
 }
 
-// Health check handler that uses the database pool
-async fn health_check(State(pool): State<PgPool>) -> Result<Json<HealthStatus>, StatusCode> {
-    // Test database connection
-    match sqlx::query("SELECT 1").execute(&pool).await {
-        Ok(_) => Ok(Json(HealthStatus {
-            status: "healthy".to_string(),
-            database: "connected".to_string(),
-            pool_size: pool.size(),
-            pool_idle: pool.num_idle(),
-            pool_connections: pool.size() as usize - pool.num_idle(),
-        })),
-        Err(_) => Ok(Json(HealthStatus {
-            status: "unhealthy".to_string(),
-            database: "disconnected".to_string(),
-            pool_size: pool.size(),
-            pool_idle: pool.num_idle(),
-            pool_connections: pool.size() as usize - pool.num_idle(),
-        })),
-    }
-}
-
-// Simple hello world handler
-async fn hello_world() -> &'static str {
-    "Hello, World!"
+// 404 Not Found handler
+async fn not_found() -> (StatusCode, Json<AppError>) {
+    (
+        StatusCode::NOT_FOUND,
+        Json(AppError {
+            error: "Endpoint not found. Check the API documentation for available endpoints.".to_string(),
+        }),
+    )
 }
 
 #[tokio::main]
@@ -80,8 +64,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build application with routes and shared state
     let app = Router::new()
-        .route("/", get(hello_world))
-        .route("/health", get(health_check))
         .merge(auth::routes())
         .merge(streams::routes())
         .merge(invites::routes())
@@ -90,6 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .merge(processing::routes())
         .merge(files::routes())
         .merge(admin::routes())
+        .fallback(not_found)  // Handle 404 for unmatched routes
         .with_state(pool); // Share the pool across all routes
 
     // Create server
