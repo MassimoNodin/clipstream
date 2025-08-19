@@ -19,19 +19,87 @@ A Rust Axum backend API for the Clipstream gaming clip platform with integrated 
 
 ### nginx Configuration
 ```nginx
-# API subdomain
+# API subdomain with rate limiting
 server {
+    listen 443 ssl http2;
     server_name api.clipsstream.com;
-    location / {
+    
+    ssl_certificate /path/to/ssl/cert.pem;
+    ssl_certificate_key /path/to/ssl/key.key;
+    client_max_body_size 100G;
+
+    # Global rate limiting zones
+    limit_req_zone $binary_remote_addr zone=api_global:10m rate=300r/m;
+    limit_req_zone $binary_remote_addr zone=search_zone:10m rate=1r/s;
+    limit_req_zone $binary_remote_addr zone=videos_zone:10m rate=1000r/m;
+
+    # Search endpoints with strict rate limiting
+    location /search {
+        limit_req zone=search_zone nodelay;
         proxy_pass http://127.0.0.1:8000;
+        include proxy_params;
+    }
+
+    # Video endpoints with higher rate limits
+    location /videos {
+        limit_req zone=videos_zone nodelay;
+        proxy_pass http://127.0.0.1:8000;
+        include proxy_params;
+    }
+
+    # All other API endpoints
+    location / {
+        limit_req zone=api_global nodelay;
+        proxy_pass http://127.0.0.1:8000;
+        include proxy_params;
+    }
+
+    # Custom error page for rate limiting
+    error_page 503 =429 /429.json;
+    location = /429.json {
+        return 429 '{"error":"Too many requests. Slow down."}';
+        add_header Content-Type application/json;
     }
 }
 
 # Main website
 server {
+    listen 443 ssl http2;
     server_name clipsstream.com;
+    
+    ssl_certificate /path/to/ssl/cert.pem;
+    ssl_certificate_key /path/to/ssl/key.key;
+    client_max_body_size 100G;
+
+    # Static file optimization
+    location /_next/static {
+        alias /path/to/nextjs/.next/static;
+        expires 1y;
+        access_log off;
+    }
+
+    location /static {
+        alias /path/to/nextjs/public/static;
+    }
+
+    # Protected file access
+    location /files {
+        auth_request /auth;
+        auth_request_set $auth_status $upstream_status;
+        alias /path/to/nextjs/public/files;
+    }
+
+    # Main Next.js application
     location / {
         proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
