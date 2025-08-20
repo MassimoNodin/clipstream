@@ -287,6 +287,18 @@ export function useMinioStream(videoId, processingStatus) {
 - **Adaptive UI**: Components adjust to available space
 - **Dark/Light Mode**: User preference support
 
+## 🎨 Design System & Colour Palette
+
+### Colour Palette
+
+| Colour | Name | Usage |
+|-------|------|-------|
+| ![#191D32](https://img.shields.io/badge/-%23191D32-191D32?style=for-the-badge&labelColor=191D32) | Deep navy / midnight blue | Works well as your main background. Dark, immersive, and easy on the eyes. |
+| ![#282F44](https://img.shields.io/badge/-%23282F44-282F44?style=for-the-badge&labelColor=282F44) | Slate blue / dark gray-blue | Great for cards, sections, or secondary backgrounds. Adds depth without being harsh. |
+| ![#F1F2EB](https://img.shields.io/badge/-%23F1F2EB-F1F2EB?style=for-the-badge&labelColor=F1F2EB) | Off-white / very light gray | Perfect for body text or subtle highlights. Provides contrast for readability. |
+| ![#D8DAD3](https://img.shields.io/badge/-%23D8DAD3-D8DAD3?style=for-the-badge&labelColor=D8DAD3) | Light gray-green | Works for secondary text, icons, or subtle borders. Keeps the palette soft and modern. |
+| ![#F45B69](https://img.shields.io/badge/-%23F45B69-F45B69?style=for-the-badge&labelColor=F45B69) | Coral / warm red | Excellent accent color for CTAs, buttons, highlights, or hover states. Pops against the dark background. |
+
 ## 🛠️ Development Setup
 
 ### Tech Stack

@@ -1,33 +1,5 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## 🎨 Color Palette
-
-The Clipstream frontend uses a modern dark theme with these carefully selected colors:
-
-1. **#191D32** – Deep navy / midnight blue <span style="display: inline-block; width: 20px; height: 20px; background-color: #191D32; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle; margin-left: 10px;"></span>
-   - Works well as your main background. Dark, immersive, and easy on the eyes.
-
-2. **#282F44** – Slate blue / dark gray-blue <span style="display: inline-block; width: 20px; height: 20px; background-color: #282F44; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle; margin-left: 10px;"></span>
-   - Great for cards, sections, or secondary backgrounds. Adds depth without being harsh.
-
-3. **#F1F2EB** – Off-white / very light gray <span style="display: inline-block; width: 20px; height: 20px; background-color: #F1F2EB; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle; margin-left: 10px;"></span>
-   - Perfect for body text or subtle highlights. Provides contrast for readability.
-
-4. **#D8DAD3** – Light gray-green <span style="display: inline-block; width: 20px; height: 20px; background-color: #D8DAD3; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle; margin-left: 10px;"></span>
-   - Works for secondary text, icons, or subtle borders. Keeps the palette soft and modern.
-
-5. **#F45B69** – Coral / warm red <span style="display: inline-block; width: 20px; height: 20px; background-color: #F45B69; border: 1px solid #ccc; border-radius: 3px; vertical-align: middle; margin-left: 10px;"></span>
-   - Excellent accent color for CTAs, buttons, highlights, or hover states. Pops against the dark background.
-
-### Color Palette Overview
-<div style="display: flex; gap: 10px; margin: 20px 0;">
-  <div style="width: 60px; height: 60px; background-color: #191D32; border-radius: 8px; border: 1px solid #ccc;"></div>
-  <div style="width: 60px; height: 60px; background-color: #282F44; border-radius: 8px; border: 1px solid #ccc;"></div>
-  <div style="width: 60px; height: 60px; background-color: #F1F2EB; border-radius: 8px; border: 1px solid #ccc;"></div>
-  <div style="width: 60px; height: 60px; background-color: #D8DAD3; border-radius: 8px; border: 1px solid #ccc;"></div>
-  <div style="width: 60px; height: 60px; background-color: #F45B69; border-radius: 8px; border: 1px solid #ccc;"></div>
-</div>
-
 ## Getting Started
 
 First, run the development server:
