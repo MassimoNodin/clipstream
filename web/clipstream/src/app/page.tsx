@@ -1,12 +1,7 @@
-
-import AuthButton from './components/AuthButton';
-import Navbar from './components/Navbar';
+import { HeroSection } from "@/components/blocks/hero-section-1"
 
 export default function Home() {
   return (
-    <main className="page-background">
-      <Navbar />
-      <AuthButton />
-    </main>
+      <HeroSection />
   );
 }
